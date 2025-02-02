@@ -1,0 +1,31 @@
+#!/bin/bash
+
+streamCamera() {
+	rpicam-vid -v 0 --camera $1 -t 0 --inline --libav-format h264 --width 1920 --height 1080 --framerate 15 --listen -o tcp://:$2
+	status="$?"
+	[ "$status" -eq 134 ] && return 0
+       return 1	
+}
+
+streamCameraDaemon() {
+	while true; do 
+		streamCamera $1 $2 || return $2
+	done	
+
+	return 1
+}
+
+{ streamCameraDaemon 0 8090 || exit $?; } & 
+{ streamCameraDaemon 1 8091 || exit $?; } & 
+
+handler() {
+    kill -9 %1 %2
+    exit 0
+}
+
+trap handler SIGINT
+
+wait %1 %2
+
+exit 0
+
